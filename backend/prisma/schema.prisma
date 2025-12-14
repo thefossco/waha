@@ -1,0 +1,163 @@
+// Prisma schema for Waha Bulk Messaging Portal
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages    Message[]
+  templates   Template[]
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  USER
+  VIEWER
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String   @unique
+  tags      String[] // Array of tags
+  metadata  Json?    // Additional metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  groups       ContactGroup[]
+  messageItems MessageItem[]
+
+  @@map("contacts")
+}
+
+model Group {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts ContactGroup[]
+
+  @@map("groups")
+}
+
+model ContactGroup {
+  id        String  @id @default(uuid())
+  contactId String
+  groupId   String
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, groupId])
+  @@map("contact_groups")
+}
+
+model Message {
+  id         String        @id @default(uuid())
+  userId     String
+  text       String
+  templateId String?
+  status     MessageStatus @default(QUEUED)
+  scheduledAt DateTime?
+  sentAt     DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id])
+  template Template?     @relation(fields: [templateId], references: [id])
+  items    MessageItem[]
+
+  @@map("messages")
+}
+
+enum MessageStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  SCHEDULED
+}
+
+model MessageItem {
+  id             String           @id @default(uuid())
+  messageId      String
+  contactId      String?
+  phone          String
+  status         MessageItemStatus @default(PENDING)
+  providerId     String?          // ID from Waha API
+  providerStatus String?          // Status from provider
+  errorMessage   String?
+  deliveredAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  message Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  contact Contact? @relation(fields: [contactId], references: [id])
+
+  @@map("message_items")
+}
+
+enum MessageItemStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  RETRYING
+}
+
+model Template {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id])
+  messages Message[]
+
+  @@map("templates")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  userId    String?
+  target    String?
+  metadata  Json?
+  timestamp DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model ApiKey {
+  id          String   @id @default(uuid())
+  name        String
+  encryptedKey String   // Encrypted Waha API key
+  isActive    Boolean  @default(true)
+  rateLimit   Int      @default(60) // Per minute
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("api_keys")
+}

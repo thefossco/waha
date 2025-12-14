@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: waha-postgres
+    environment:
+      POSTGRES_USER: waha
+      POSTGRES_PASSWORD: waha_password
+      POSTGRES_DB: waha_messaging
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - waha-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: waha-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - waha-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: waha-backend
+    environment:
+      DATABASE_URL: postgresql://waha:waha_password@postgres:5432/waha_messaging?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 3000
+      NODE_ENV: production
+    env_file:
+      - ./backend/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - waha-network
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/logs:/app/logs
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: waha-worker
+    command: npm run worker:prod
+    environment:
+      DATABASE_URL: postgresql://waha:waha_password@postgres:5432/waha_messaging?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NODE_ENV: production
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - waha-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: waha-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - waha-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  waha-network:
+    driver: bridge

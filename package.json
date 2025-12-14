@@ -1,0 +1,33 @@
+{
+  "name": "waha-bulk-messaging-portal",
+  "version": "1.0.0",
+  "description": "Bulk Messaging Portal for Waha API",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "worker": "cd backend && npm run worker",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "migrate": "cd backend && npm run migrate",
+    "migrate:dev": "cd backend && npm run migrate:dev"
+  },
+  "keywords": [
+    "waha",
+    "whatsapp",
+    "bulk-messaging",
+    "sms",
+    "messaging-portal"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
